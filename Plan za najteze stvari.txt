@@ -1,8 +1,27 @@
 Time
 1) potrebno je azurirati CityID
 2) potrebno je azurirati Assembled
-3) potrebno je azurirati 'arrived', ReceivedTime tj aktivirati trigger
-4) potrebno je azurirati hes mape
+3) potrebno je azurirati 'arrived' i ReceivedTime tj aktivirati trigger
+1) potrebno je azurirati hes mape
+	* prodjemo kroz mDaysToAssamble i oduzmemo dane
+		* ako je <= 0, (ne) dodamo u mDaysToNextCity
+		- azuriramo Assembled
+		- proveravamo mPath.size
+		- ako je == 1, odradimo azuriranje arrived i ReceivedTime
+		- ako je == 1, brisemo iz mPath
+		- ako je > 1, dobijemo dane pomocu query i put u mDaysToNextCity - 0/negativni dani
+		- ako je > 1, brisemo prvi element u mPath
+		- u svakom slucaju, brisemo mDaysToAssamble
+	* prodjemo kroz mDaysToNextCity i oduzmemo dane
+		* ako je <= 0, (ne) dodamo u mDaysToNextCity
+		- azuriramo CityID
+		- proveravamo mPath.size
+		- ako je == 1, odradimo azuriranje arrived i ReceivedTime
+		- ako je == 1, brisemo iz mPath
+		- ako je == 1, brisemo iz mDaysToNextCity
+		- ako je > 1, dobijemo dane pomocu query i put u mDaysToNextCity + 0/negativni dani
+		- ako je > 1, brisemo prvi element u mPath
+		* ovo sve mora kroz neki ogroman while
 
 Complete order
 1) potrebno je videti koliko je kupac potrosio u prethodnih mesec dana i azurirati discount (Order, Item)

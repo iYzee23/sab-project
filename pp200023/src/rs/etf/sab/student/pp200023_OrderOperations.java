@@ -237,11 +237,11 @@ public class pp200023_OrderOperations implements OrderOperations {
     @Override
     public int completeOrder(int orderId) {
         try {
+            conn.setAutoCommit(false);
             List<Integer> ListShopId = new ArrayList<>();
             List<Integer> ListArticleId = new ArrayList<>();
             int buyerId = -1, discount, tranId;
             double buyerPrice;
-            conn.setAutoCommit(false);
             String query0 = "SELECT Status\n" +
                 "FROM [Order]\n" +
                 "WHERE ID = ?";
