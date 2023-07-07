@@ -1,0 +1,27 @@
+Time
+1) potrebno je azurirati CityID
+2) potrebno je azurirati Assembled
+
+Complete order
+1) potrebno je videti koliko je kupac potrosio u prethodnih mesec dana i azurirati discount (Order, Item)
+2) potrebno je za svaki item azurirati discount, na osnovu shopa iz kog je item
+3) potrebno je promeniti status porudzbine u 'sent'
+4) price u order je ono sto kupac placa (nakon svih snizenja) !!!
+5) potrebno je azurirati SentTime
+6) potrebno je azurirati Path
+7) potrebno je skinuti novac kupcu
+8) potrebno je kreirati transakciju prema kupcu (ExecutionTime == null)
+
+Trigger
+1) kada porudzbina dobije status 'arrived' vrsi se isplata prodavnicama
+	* proveriti pomocu inserted i deleted da li je dobar update u pitanju
+2) potrebno je azurirati ReceivedTime
+	* current timestamp
+	* ne, ovo prebacujemo u Time metodu (logicno, ovaj triger samo radi sa prodavnicama)
+3) potrebno je azurirati ExecutionTime ka kupcu
+	* current timestamp
+4) potrebno je dodati transakcije ka svim prodavnicama
+	* SELECT S.ID, COALESCE(SUM(Price * (100 - Discount) / 100.0, 0)
+	   FROM Item I join Catalog C on I.ArticleID = C.ArticleID join Shop S on C.ShopID = S.ID
+	   WHERE OrderID = 1
+	   GROUP BY S.ID

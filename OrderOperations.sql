@@ -87,7 +87,6 @@ final price. Sum that buyer have to pay. -1 if failure
 or if order is not completed
 */
 
-
 /*
 java.math.BigDecimal getDiscountSum​(int orderId)
 Gets calculated discount for the order
