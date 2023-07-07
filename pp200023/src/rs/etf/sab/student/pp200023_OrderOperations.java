@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.logging.Level;
@@ -54,6 +55,26 @@ class Graph {
         }
 
         return dist;
+    }
+    
+    List<Integer> getPath(int src, int dst, int[] dist) {
+        List<Integer> path = new ArrayList<>();
+        int current = dst;
+
+        while (current != src) {
+            path.add(current);
+            for (iPair neighbor : adj.get(current)) {
+                if (dist[current] == dist[neighbor.first] + neighbor.second) {
+                    current = neighbor.first;
+                    break;
+                }
+            }
+        }
+
+        path.add(src);
+        Collections.reverse(path);
+
+        return path;
     }
 
     static class iPair {
