@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import rs.etf.sab.operations.GeneralOperations;
@@ -17,6 +19,10 @@ public class pp200023_GeneralOperations implements GeneralOperations {
     static Connection conn = DB.getInstance().getConnection();
     
     static Calendar calendar = Calendar.getInstance();
+    
+    static Map<Integer, Integer> mDaysToAssamble = pp200023_OrderOperations.mDaysToAssamble;
+    static Map<Integer, List<Integer>> mPath = pp200023_OrderOperations.mPath;
+    static Map<Integer, Integer> mDaysToNextCity = pp200023_OrderOperations.mDaysToNextCity;
 
     @Override
     public void setInitialTime(Calendar time) {

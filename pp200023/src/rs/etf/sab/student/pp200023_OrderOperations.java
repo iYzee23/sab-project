@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -13,6 +14,8 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -72,7 +75,7 @@ class Graph {
         }
 
         path.add(src);
-        Collections.reverse(path);
+        // Collections.reverse(path);
 
         return path;
     }
@@ -87,14 +90,17 @@ class Graph {
     }
 }
 
-
 /**
  *
  * @author DjapePC
  */
 public class pp200023_OrderOperations implements OrderOperations {
     
-    Connection conn = DB.getInstance().getConnection();
+    static Connection conn = DB.getInstance().getConnection();
+    
+    static Map<Integer, Integer> mDaysToAssamble = new HashMap<>();
+    static Map<Integer, List<Integer>> mPath = new HashMap<>();
+    static Map<Integer, Integer> mDaysToNextCity = new HashMap<>();
 
     @Override
     public int addArticle(int orderId, int articleId, int count) {
@@ -230,7 +236,272 @@ public class pp200023_OrderOperations implements OrderOperations {
 
     @Override
     public int completeOrder(int orderId) {
-        // TODO
+        try {
+            List<Integer> ListShopId = new ArrayList<>();
+            List<Integer> ListArticleId = new ArrayList<>();
+            int buyerId = -1, discount, tranId;
+            double buyerPrice;
+            conn.setAutoCommit(false);
+            String query0 = "SELECT Status\n" +
+                "FROM [Order]\n" +
+                "WHERE ID = ?";
+            String query1 = "SELECT BuyerID\n" +
+                "FROM [Order]\n" +
+                "WHERE ID = ?";
+            String query2 = "SELECT COALESCE(SUM(Price), 0)\n" +
+                "FROM [Order]\n" +
+                "WHERE BuyerID = ? and Status = 'arrived' and ReceivedTime >= ?";
+            String query3 = "UPDATE [Order]\n" +
+                "SET Discount = 2\n" +
+                "WHERE ID = ?";
+            String query4 = "SELECT DISTINCT(S.ID)\n" +
+                "FROM Item I join Catalog C on I.ArticleID = C.ArticleID join Shop S on C.ShopID = S.ID\n" +
+                "WHERE I.OrderID = ?";
+            String query5 = "SELECT Discount\n" +
+                "FROM Shop\n" +
+                "WHERE ID = ?";
+            String query6 = "UPDATE Item\n" +
+                "SET Discount = Discount + ?\n" +
+                "WHERE OrderID = ?";
+            String query7 = "SELECT I.ArticleID\n" +
+                "FROM Catalog C join Item I on C.ArticleID = I.ArticleID\n" +
+                "WHERE C.ShopID = ? and I.OrderID = ?";
+            String query8 = "UPDATE Item\n" +
+                "SET Discount = Discount + ?\n" +
+                "WHERE ArticleID = ? and OrderID = ?";
+            try (PreparedStatement stmt0 = conn.prepareStatement(query0)) {
+                stmt0.setInt(1, orderId);
+                try (ResultSet rs0 = stmt0.executeQuery()) {
+                    if (rs0.next()) {
+                        if (!rs0.getString(1).equals("created")) {
+                            conn.rollback();
+                            return -1;
+                        }
+                    }
+                }
+            }
+            try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
+                stmt1.setInt(1, orderId);
+                try (ResultSet rs1 = stmt1.executeQuery()) {
+                    if (rs1.next()) {
+                        buyerId = rs1.getInt(1);
+                        Calendar cal = (Calendar) pp200023_GeneralOperations.calendar.clone();
+                        cal.add(Calendar.MONTH, -1);
+                        try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
+                            stmt2.setInt(1, buyerId);
+                            stmt2.setTimestamp(2, new Timestamp(cal.getTimeInMillis()));
+                            try (ResultSet rs2 = stmt2.executeQuery()) {
+                                if (rs2.next()) {
+                                    buyerPrice = rs2.getDouble(1);
+                                    if (buyerPrice > 10000) {
+                                        try (PreparedStatement stmt3 = conn.prepareStatement(query3)) {
+                                            stmt3.setInt(1, orderId);
+                                            stmt3.executeUpdate();
+                                            try (PreparedStatement stmt6 = conn.prepareStatement(query6)) {
+                                                stmt6.setInt(1, 2);
+                                                stmt6.setInt(2, orderId);
+                                                stmt6.executeUpdate();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        try (PreparedStatement stmt4 = conn.prepareStatement(query4)) {
+                            stmt4.setInt(1, orderId);
+                            try (ResultSet rs4 = stmt4.executeQuery()) {
+                                while (rs4.next()) ListShopId.add(rs4.getInt(1));
+                                for (Integer shopId: ListShopId) {
+                                    try (PreparedStatement stmt5 = conn.prepareStatement(query5)) {
+                                        stmt5.setInt(1, shopId);
+                                        try (ResultSet rs5 = stmt5.executeQuery()) {
+                                            if (rs5.next()) {
+                                                discount = rs5.getInt(1);
+                                                if (discount > 0) {
+                                                    try (PreparedStatement stmt7 = conn.prepareStatement(query7)) {
+                                                        stmt7.setInt(1, shopId);
+                                                        stmt7.setInt(2, orderId);
+                                                        try (ResultSet rs7 = stmt7.executeQuery()) {
+                                                            while (rs7.next()) ListArticleId.add(rs7.getInt(1));
+                                                            for (Integer articleId: ListArticleId) {
+                                                                try (PreparedStatement stmt8 = conn.prepareStatement(query8)) {
+                                                                    stmt8.setInt(1, discount);
+                                                                    stmt8.setInt(2, articleId);
+                                                                    stmt8.setInt(3, orderId);
+                                                                    stmt8.executeUpdate();
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        double totalPrice;
+                        String query9 = "SELECT COALESCE(SUM(Price * (100 - Discount) / 100.0), 0)\n" +
+                            "FROM Item\n" +
+                            "WHERE OrderID = ?";
+                        String query90 = "SELECT Credit\n" +
+                            "FROM Buyer\n" +
+                            "WHERE ID = ?";
+                        String query10 = "UPDATE [Order]\n" +
+                            "SET Price = ?\n" +
+                            "WHERE ID = ?";
+                        String query11 = "UPDATE Buyer\n" +
+                            "SET Credit = Credit - ?\n" +
+                            "WHERE ID = ?";
+                        String query12 = "INSERT INTO [Transaction] (Amount, OrderID) VALUES (?, ?)";
+                        String query13 = "INSERT INTO TransactionBuyer (ID) VALUES(?)";
+                        try (PreparedStatement stmt9 = conn.prepareStatement(query9)) {
+                            stmt9.setInt(1, orderId);
+                            try (ResultSet rs9 = stmt9.executeQuery()) {
+                                if (rs9.next()) {
+                                    totalPrice = rs9.getDouble(1);
+                                    try (PreparedStatement stmt90 = conn.prepareStatement(query90)) {
+                                        stmt90.setInt(1, buyerId);
+                                        try (ResultSet rs90 = stmt90.executeQuery()) {
+                                            if (rs90.next()) {
+                                                if (rs90.getDouble(1) < totalPrice) {
+                                                    conn.rollback();
+                                                    return -1;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    try (PreparedStatement stmt10 = conn.prepareStatement(query10)) {
+                                        stmt10.setDouble(1, totalPrice);
+                                        stmt10.setInt(2, orderId);
+                                        stmt10.executeUpdate();
+                                        try (PreparedStatement stmt11 = conn.prepareStatement(query11)) {
+                                            stmt11.setDouble(1, totalPrice);
+                                            stmt11.setInt(2, buyerId);
+                                            stmt11.executeUpdate();
+                                            try (PreparedStatement stmt12 = conn.prepareStatement(query12, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                                                stmt12.setDouble(1, totalPrice);
+                                                stmt12.setInt(2, orderId);
+                                                stmt12.executeUpdate();
+                                                try (ResultSet rs12 = stmt12.getGeneratedKeys()) {
+                                                    if (rs12.next()) {
+                                                        tranId = rs12.getInt(1);
+                                                        try (PreparedStatement stmt13 = conn.prepareStatement(query13)) {
+                                                            stmt13.setInt(1, tranId);
+                                                            stmt13.executeUpdate();
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        String query14 = "UPDATE [Order]\n" +
+                            "SET Status = 'sent'\n" +
+                            "WHERE ID = ?";
+                        String query15 = "UPDATE [Order]\n" +
+                            "SET SentTime = ?\n" +
+                            "WHERE ID = ?";
+                        try (PreparedStatement stmt14 = conn.prepareStatement(query14)) {
+                            stmt14.setInt(1, orderId);
+                            stmt14.executeUpdate();
+                            Calendar call = (Calendar) pp200023_GeneralOperations.calendar.clone();
+                            try (PreparedStatement stmt15 = conn.prepareStatement(query15)) {
+                                stmt15.setTimestamp(orderId, new Timestamp(call.getTimeInMillis()));
+                                stmt15.setInt(1, orderId);
+                                stmt15.executeUpdate();
+                            }
+                        }
+                    }
+                }
+            }
+            int cityCnt, city1, city2, buyerCity, assembleCity = -1, dist;
+            int minn = Integer.MAX_VALUE, maxx = Integer.MIN_VALUE;
+            List<Integer> ListShopCityID = new ArrayList<>();
+            List<Integer> ListOrderCityID = new ArrayList<>();
+            String query16 = "SELECT COUNT(*)\n" +
+                "FROM City";
+            String query17 = "SELECT CityID1, CityID2, Distance\n" +
+                "FROM Connection";
+            String query18 = "UPDATE [Order]\n" +
+                "SET CityID = ?\n" +
+                "WHERE ID = ?";
+            String query19 = "SELECT CityID\n" +
+                "FROM Member\n" +
+                "WHERE ID = ?";
+            String query20 = "SELECT DISTINCT(M.CityID)\n" +
+                "FROM Member M join Shop S on M.ID = S.ID";
+            String query21 = "SELECT DISTINCT(M.CityID)\n" +
+                "FROM Item I join Catalog C on I.ArticleID = C.ArticleID join Member M on C.ShopID = M.ID\n" +
+                "WHERE I.OrderID = ?";
+            try (PreparedStatement stmt16 = conn.prepareStatement(query16)) {
+                try (ResultSet rs16 = stmt16.executeQuery()) {
+                    if (rs16.next()) {
+                        cityCnt = rs16.getInt(1);
+                        Graph g = new Graph(cityCnt);
+                        try (PreparedStatement stmt17 = conn.prepareStatement(query17)) {
+                            try (ResultSet rs17 = stmt17.executeQuery()) {
+                                while (rs17.next()) {
+                                    city1 = rs17.getInt(1) - 1;
+                                    city2 = rs17.getInt(2) - 1;
+                                    dist = rs17.getInt(3);
+                                    g.addEdge(city1, city2, dist);
+                                }
+                                try (PreparedStatement stmt19 = conn.prepareStatement(query19)) {
+                                    stmt19.setInt(1, buyerId);
+                                    try (ResultSet rs19 = stmt19.executeQuery()) {
+                                        if (rs19.next()) {
+                                            buyerCity = rs19.getInt(1) - 1;
+                                            int[] path = g.shortestPath(buyerCity);
+                                            try (PreparedStatement stmt20 = conn.prepareStatement(query20)) {
+                                                try (ResultSet rs20 = stmt20.executeQuery()) {
+                                                    while (rs20.next()) ListShopCityID.add(rs20.getInt(1) - 1);
+                                                    for (Integer cityId: ListShopCityID) {
+                                                        if (path[cityId] < minn) {
+                                                            minn = path[cityId];
+                                                            assembleCity = cityId;
+                                                        }
+                                                    }
+                                                    try (PreparedStatement stmt18 = conn.prepareStatement(query18)) {
+                                                        stmt18.setInt(1, assembleCity + 1);
+                                                        stmt18.setInt(2, orderId);
+                                                        stmt18.executeUpdate();
+                                                    }
+                                                    List<Integer> bPath = g.getPath(buyerCity, assembleCity, path);
+                                                    mPath.put(orderId, bPath);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        int[] assPath = g.shortestPath(assembleCity);
+                        try (PreparedStatement stmt21 = conn.prepareStatement(query21)) {
+                            stmt21.setInt(1, orderId);
+                            try (ResultSet rs21 = stmt21.executeQuery()) {
+                                while (rs21.next()) ListOrderCityID.add(rs21.getInt(1) - 1);
+                                for (Integer cityId: ListOrderCityID) {
+                                    if (assPath[cityId] > maxx) maxx = assPath[cityId];
+                                }
+                                mDaysToAssamble.put(orderId, maxx);
+                            }
+                        }
+                    }
+                }
+            }
+            conn.commit();
+            return 1;
+        } catch (SQLException ex) {
+            Logger.getLogger(pp200023_OrderOperations.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+            conn.rollback();
+        } catch (SQLException ex) {
+            Logger.getLogger(pp200023_OrderOperations.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return -1;
     }
 

@@ -18,7 +18,7 @@ import rs.etf.sab.operations.TransactionOperations;
  */
 public class pp200023_TransactionOperations implements TransactionOperations {
     
-    Connection conn = DB.getInstance().getConnection();
+    static Connection conn = DB.getInstance().getConnection();
 
     @Override
     public BigDecimal getBuyerTransactionsAmmount(int buyerId) {

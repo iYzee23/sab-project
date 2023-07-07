@@ -125,7 +125,6 @@ CREATE TABLE [Order]
 	[Discount]           integer  NOT NULL 
 	CONSTRAINT [DefaultZero_1430620049]
 		 DEFAULT  0,
-	[Path]               varchar(100)  NULL ,
 	[CityID]             integer  NULL ,
 	[Assembled]          bit  NOT NULL 
 	CONSTRAINT [DefaultZero_1096387030]

@@ -75,7 +75,90 @@ orderId - oreder id
 Returns:
 1 if success, -1 if failure
 */
+SELECT Status
+FROM [Order]
+WHERE ID = 1
 
+SELECT BuyerID
+FROM [Order]
+WHERE ID = 1
+
+SELECT COALESCE(SUM(Price), 0)
+FROM [Order]
+WHERE BuyerID = 1 and Status = 'arrived' and ReceivedTime >= ''
+
+UPDATE [Order]
+SET Discount = 2
+WHERE ID = 1
+
+SELECT DISTINCT(S.ID)
+FROM Item I join Catalog C on I.ArticleID = C.ArticleID join Shop S on C.ShopID = S.ID
+WHERE I.OrderID = 1
+
+SELECT Discount
+FROM Shop
+WHERE ID = 1
+
+UPDATE Item
+SET Discount = Discount + 1
+WHERE OrderID = 1
+
+SELECT I.ArticleID
+FROM Catalog C join Item I on C.ArticleID = I.ArticleID
+WHERE C.ShopID = 1 and I.OrderID = 1
+
+UPDATE Item
+SET Discount = Discount + 1
+WHERE ArticleID = 1 and OrderID = 1
+
+SELECT COALESCE(SUM(Price * (100 - Discount) / 100.0), 0)
+FROM Item
+WHERE OrderID = 1
+
+SELECT Credit
+FROM Buyer
+WHERE ID = 1
+
+UPDATE [Order]
+SET Price = 5
+WHERE ID = 1
+
+UPDATE Buyer
+SET Credit = Credit - 5
+WHERE ID = 1
+
+INSERT INTO [Transaction] (Amount, OrderID) VALUES (5.0, 1)
+
+INSERT INTO TransactionBuyer (ID) VALUES(1)
+
+UPDATE [Order]
+SET Status = 'sent'
+WHERE ID = 1
+
+UPDATE [Order]
+SET SentTime = ''
+WHERE ID = 1
+
+SELECT COUNT(*)
+FROM City
+
+SELECT CityID1, CityID2, Distance
+FROM Connection
+
+UPDATE [Order]
+SET CityID = 1
+WHERE ID = 1
+
+SELECT CityID
+FROM Member
+WHERE ID = 1
+
+SELECT DISTINCT(M.CityID)
+FROM Member M join Shop S on M.ID = S.ID
+
+SELECT DISTINCT(M.CityID)
+FROM Item I join Catalog C on I.ArticleID = C.ArticleID join Member M on C.ShopID = M.ID
+WHERE I.OrderID = 1
 
 /*
 java.math.BigDecimal getFinalPrice​(int orderId)
@@ -86,6 +169,7 @@ Returns:
 final price. Sum that buyer have to pay. -1 if failure 
 or if order is not completed
 */
+EXECUTE dbo.SP_FINAL_PRICE 1, 2
 
 /*
 java.math.BigDecimal getDiscountSum​(int orderId)

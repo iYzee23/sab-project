@@ -54,6 +54,10 @@ BEGIN
 			INSERT INTO TransactionShop (ID, ShopID)
 			VALUES (@@IDENTITY, @shopId)
 
+			UPDATE Shop
+			SET Balance = Balance + @price
+			WHERE ID = @shopId
+
 			FETCH NEXT FROM @shopKursor
 			INTO @shopId, @price
 		END
