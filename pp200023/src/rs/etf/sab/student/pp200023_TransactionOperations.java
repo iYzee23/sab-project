@@ -23,10 +23,10 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public BigDecimal getBuyerTransactionsAmmount(int buyerId) {
         String query = "SELECT COALESCE(SUM(T.Amount), 0)\n" +
-            "FROM Transaction T join TransactionBuyer TB on T.ID = TB.ID\n" +
+            "FROM [Transaction] T join TransactionBuyer TB on T.ID = TB.ID\n" +
             "WHERE OrderID in (\n" +
             "	SELECT O.ID\n" +
-            "	FROM Order O\n" +
+            "	FROM [Order] O\n" +
             "	WHERE O.BuyerID = ?\n" +
             ")";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -43,7 +43,7 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public BigDecimal getShopTransactionsAmmount(int shopId) {
         String query = "SELECT COALESCE(SUM(T.Amount), 0)\n" +
-            "FROM Transaction T join TransactionShop TS on T.ID = TS.ID\n" +
+            "FROM [Transaction] T join TransactionShop TS on T.ID = TS.ID\n" +
             "WHERE TS.ShopID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, shopId);
@@ -60,10 +60,10 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     public List<Integer> getTransationsForBuyer(int buyerId) {
         List<Integer> res = new ArrayList<>();
         String query = "SELECT T.ID\n" +
-            "FROM Transaction T join TransactionBuyer TB on T.ID = TB.ID\n" +
+            "FROM [Transaction] T join TransactionBuyer TB on T.ID = TB.ID\n" +
             "WHERE OrderID in (\n" +
             "	SELECT O.ID\n" +
-            "	FROM Order O\n" +
+            "	FROM [Order] O\n" +
             "	WHERE O.BuyerID = ?\n" +
             ")";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -81,7 +81,7 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public int getTransactionForBuyersOrder(int orderId) {
         String query = "SELECT T.ID\n" +
-            "FROM Transaction T join TransactionBuyer TB on T.ID = TB.ID\n" +
+            "FROM [Transaction] T join TransactionBuyer TB on T.ID = TB.ID\n" +
             "WHERE OrderID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
@@ -97,7 +97,7 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public int getTransactionForShopAndOrder(int orderId, int shopId) {
         String query = "SELECT T.ID\n" +
-            "FROM Transaction T join TransactionShop TS on T.ID = TS.ID\n" +
+            "FROM [Transaction] T join TransactionShop TS on T.ID = TS.ID\n" +
             "WHERE TS.ShopID = ? and T.OrderID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, shopId);
@@ -134,10 +134,10 @@ public class pp200023_TransactionOperations implements TransactionOperations {
         Calendar cal1 = Calendar.getInstance();
         Calendar cal2 = Calendar.getInstance();
         String query1 = "SELECT O.ReceivedTime\n" +
-            "FROM Order O join Transaction T on O.ID = T.OrderID\n" +
+            "FROM [Order] O join [Transaction] T on O.ID = T.OrderID\n" +
             "WHERE T.ID = ?";
         String query2 = "SELECT ExecutionTime\n" +
-            "FROM Transaction\n" +
+            "FROM [Transaction]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setInt(1, transactionId);
@@ -164,7 +164,7 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public BigDecimal getAmmountThatBuyerPayedForOrder(int orderId) {
         String query = "SELECT Price\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
@@ -180,7 +180,7 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public BigDecimal getAmmountThatShopRecievedForOrder(int shopId, int orderId) {
         String query = "SELECT T.Amount\n" +
-            "FROM Transaction T join TransactionShop TS on T.ID = TS.ID\n" +
+            "FROM [Transaction] T join TransactionShop TS on T.ID = TS.ID\n" +
             "WHERE TS.ShopID = ? and T.OrderID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, shopId);
@@ -197,7 +197,7 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public BigDecimal getTransactionAmount(int transactionId) {
         String query = "SELECT Amount\n" +
-            "FROM Transaction\n" +
+            "FROM [Transaction]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, transactionId);
@@ -213,7 +213,7 @@ public class pp200023_TransactionOperations implements TransactionOperations {
     @Override
     public BigDecimal getSystemProfit() {
         String query = "SELECT COALESCE(SUM(Price * (5 - Discount) / 100.0), 0)\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE Status = 'arrived'";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             try (ResultSet rs = stmt.executeQuery()) {

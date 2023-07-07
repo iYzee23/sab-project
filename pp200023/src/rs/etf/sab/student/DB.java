@@ -14,8 +14,8 @@ public class DB {
             = "jdbc:sqlserver://" + server + ":" + port
             + ";databaseName=" + database
             + ";encrypt=true"
-            + ";trustServerCertificate=true"
-            + ";integratedSecurity=true";
+            + ";trustServerCertificate=true";
+            // + ";integratedSecurity=true";
 
     private Connection connection;
 

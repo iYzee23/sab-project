@@ -49,7 +49,7 @@ public class pp200023_OrderOperations implements OrderOperations {
                     dbCount = rs1.getInt(1);
                     if (dbCount >= count) {
                         try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
-                            stmt2.setInt(2, articleId);
+                            stmt2.setInt(1, articleId);
                             try (ResultSet rs2 = stmt2.executeQuery()) {
                                 if (rs2.next()) {
                                     price = rs2.getDouble(1);
@@ -168,7 +168,7 @@ public class pp200023_OrderOperations implements OrderOperations {
     public BigDecimal getDiscountSum(int orderId) {
         String status;
         String query1 = "SELECT Status\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         String query2 = "SELECT COALESCE(SUM(Price * Discount / 100.0), 0)\n" +
             "FROM Item\n" +
@@ -197,7 +197,7 @@ public class pp200023_OrderOperations implements OrderOperations {
     @Override
     public String getState(int orderId) {
         String query = "SELECT Status\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
@@ -214,7 +214,7 @@ public class pp200023_OrderOperations implements OrderOperations {
     public Calendar getSentTime(int orderId) {
         Calendar cal = Calendar.getInstance();
         String query = "SELECT SentTime\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
@@ -234,7 +234,7 @@ public class pp200023_OrderOperations implements OrderOperations {
     public Calendar getRecievedTime(int orderId) {
         Calendar cal = Calendar.getInstance();
         String query = "SELECT ReceivedTime\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
@@ -253,7 +253,7 @@ public class pp200023_OrderOperations implements OrderOperations {
     @Override
     public int getBuyer(int orderId) {
         String query = "SELECT BuyerID\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
@@ -270,10 +270,10 @@ public class pp200023_OrderOperations implements OrderOperations {
     public int getLocation(int orderId) {
         String status;
         String query1 = "SELECT Status\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         String query2 = "SELECT CityID\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setInt(1, orderId);

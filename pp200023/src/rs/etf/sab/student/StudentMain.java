@@ -7,18 +7,21 @@ import rs.etf.sab.tests.TestHandler;
 import rs.etf.sab.tests.TestRunner;
 
 import java.util.Calendar;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import rs.etf.sab.tests.*;
 
 public class StudentMain {
 
     public static void main(String[] args) {
 
-        ArticleOperations articleOperations = null; // Change this for your implementation (points will be negative if interfaces are not implemented).
-        BuyerOperations buyerOperations = null;
-        CityOperations cityOperations = null;
-        GeneralOperations generalOperations = null;
-        OrderOperations orderOperations = null;
-        ShopOperations shopOperations = null;
-        TransactionOperations transactionOperations = null;
+        ArticleOperations articleOperations = new pp200023_ArticleOperations();
+        BuyerOperations buyerOperations = new pp200023_BuyerOperations();
+        CityOperations cityOperations = new pp200023_CityOperations();
+        GeneralOperations generalOperations = new pp200023_GeneralOperations();
+        OrderOperations orderOperations = new pp200023_OrderOperations();
+        ShopOperations shopOperations = new pp200023_ShopOperations();
+        TransactionOperations transactionOperations = new pp200023_TransactionOperations();
 
         TestHandler.createInstance(
                 articleOperations,
@@ -29,7 +32,7 @@ public class StudentMain {
                 shopOperations,
                 transactionOperations
         );
-
+        
         TestRunner.runTests();
     }
 }

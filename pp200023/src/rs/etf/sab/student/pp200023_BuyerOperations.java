@@ -102,7 +102,7 @@ public class pp200023_BuyerOperations implements BuyerOperations {
 
     @Override
     public int createOrder(int buyerId) {
-        String query = "INSERT INTO Order (BuyerID) VALUES (?)";
+        String query = "INSERT INTO [Order] (BuyerID) VALUES (?)";
         try (PreparedStatement stmt = conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, buyerId);
             stmt.executeUpdate();
@@ -119,7 +119,7 @@ public class pp200023_BuyerOperations implements BuyerOperations {
     public List<Integer> getOrders(int buyerId) {
         List<Integer> res = new ArrayList<>();
         String query = "SELECT ID\n" +
-            "FROM Order\n" +
+            "FROM [Order]\n" +
             "WHERE BuyerID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, buyerId);
