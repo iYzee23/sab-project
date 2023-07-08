@@ -10,8 +10,7 @@ CREATE TRIGGER TR_TRANSFER_MONEY_TO_SHOPS
 BEGIN
 	DECLARE @kursor cursor
 	DECLARE @orderId int
-	DECLARE @buyerTransaction int
-	DECLARE @receivedTime timestamp
+	DECLARE @receivedTime datetime
 	
 	DECLARE @shopKursor cursor
 	DECLARE @shopId int
@@ -28,16 +27,8 @@ BEGIN
 
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
-		SELECT @buyerTransaction = T.ID
-		FROM [Transaction] T join TransactionBuyer TB on T.ID = TB.ID
-		WHERE T.OrderID = @orderId
-
-		UPDATE [Transaction]
-		SET ExecutionTime = @receivedTime
-		WHERE ID = @buyerTransaction
-
 		SET @shopKursor = cursor FOR
-		SELECT S.ID, COALESCE(SUM(Price * (100 - I.Discount) / 100.0), 0)
+		SELECT S.ID, COALESCE(SUM(Price * (100 - I.Discount) / 100.0) * 0.95, 0)
 		FROM Item I join Catalog C on I.ArticleID = C.ArticleID join Shop S on C.ShopID = S.ID
 		WHERE OrderID = @orderId
 		GROUP BY S.ID

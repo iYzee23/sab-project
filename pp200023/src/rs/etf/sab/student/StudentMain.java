@@ -1,15 +1,8 @@
 package rs.etf.sab.student;
 
 import rs.etf.sab.operations.*;
-import org.junit.Test;
-import rs.etf.sab.student.*;
 import rs.etf.sab.tests.TestHandler;
 import rs.etf.sab.tests.TestRunner;
-
-import java.util.Calendar;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import rs.etf.sab.tests.*;
 
 public class StudentMain {
 

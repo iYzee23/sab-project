@@ -1,9 +1,11 @@
 package rs.etf.sab.student;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -37,7 +39,10 @@ public class pp200023_GeneralOperations implements GeneralOperations {
         try {
             conn.setAutoCommit(false);
             String query1 = "UPDATE [Order]\n" +
-                "SET Status = 'arrived', ReceivedTime = ?\n" +
+                "SET Status = 'arrived'\n" +
+                "WHERE ID = ?";
+            String query5 = "UPDATE [Order]\n" +
+                "SET ReceivedTime = ?\n" +
                 "WHERE ID = ?";
             String query2 = "UPDATE [Order]\n" +
                 "SET Assembled = 1\n" +
@@ -113,13 +118,17 @@ public class pp200023_GeneralOperations implements GeneralOperations {
                             if (path.size() == 1) {
                                 Calendar cal = (Calendar) calendar.clone();
                                 cal.add(Calendar.DATE, days + cDays);
-                                try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
-                                    stmt1.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
-                                    stmt1.setInt(2, cOrderId);
-                                    stmt1.executeUpdate();
-                                    mPath.remove(cOrderId);
-                                    cToRemove.add(cOrderId);
-                                    break;
+                                try (PreparedStatement stmt5 = conn.prepareStatement(query5)) {
+                                    stmt5.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
+                                    stmt5.setInt(2, cOrderId);
+                                    stmt5.executeUpdate();
+                                    try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
+                                        stmt1.setInt(1, cOrderId);
+                                        stmt1.executeUpdate();
+                                        mPath.remove(cOrderId);
+                                        cToRemove.add(cOrderId);
+                                        break;
+                                    }
                                 }
                             }
                             else {
@@ -173,6 +182,7 @@ public class pp200023_GeneralOperations implements GeneralOperations {
         String query3 = "EXEC sp_MSForEachTable 'DELETE FROM ?'";
         String query4 = "EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'";
         String query5 = "EXEC sp_MSForEachTable 'ENABLE TRIGGER ALL ON ?'";
+
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.execute();
             try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
@@ -181,6 +191,26 @@ public class pp200023_GeneralOperations implements GeneralOperations {
                     stmt3.execute();
                     try (PreparedStatement stmt4 = conn.prepareStatement(query4)) {
                         stmt4.execute();
+
+                        // Reset identity values for tables with identity columns
+                        Statement resetIdentityStmt = conn.createStatement();
+                        ResultSet tablesResultSet = conn.getMetaData().getTables(null, null, null, new String[]{"TABLE"});
+                        while (tablesResultSet.next()) {
+                            String tableName = tablesResultSet.getString("TABLE_NAME");
+                            ResultSet columnsResultSet = conn.getMetaData().getColumns(null, null, tableName, null);
+                            boolean hasIdentityColumn = false;
+                            while (columnsResultSet.next()) {
+                                if (columnsResultSet.getString("IS_AUTOINCREMENT").equals("YES")) {
+                                    hasIdentityColumn = true;
+                                    break;
+                                }
+                            }
+                            if (hasIdentityColumn) {
+                                String resetIdentityQuery = "DBCC CHECKIDENT ('[" + tableName + "]', RESEED, 0)";
+                                resetIdentityStmt.execute(resetIdentityQuery);
+                            }
+                        }
+
                         try (PreparedStatement stmt5 = conn.prepareStatement(query5)) {
                             stmt5.execute();
                         }
@@ -191,5 +221,5 @@ public class pp200023_GeneralOperations implements GeneralOperations {
             Logger.getLogger(pp200023_GeneralOperations.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
 }

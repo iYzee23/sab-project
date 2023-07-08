@@ -238,8 +238,6 @@ public class pp200023_OrderOperations implements OrderOperations {
     public int completeOrder(int orderId) {
         try {
             conn.setAutoCommit(false);
-            List<Integer> ListShopId = new ArrayList<>();
-            List<Integer> ListArticleId = new ArrayList<>();
             int buyerId = -1, discount, tranId;
             double buyerPrice;
             String query0 = "SELECT Status\n" +
@@ -310,6 +308,7 @@ public class pp200023_OrderOperations implements OrderOperations {
                         try (PreparedStatement stmt4 = conn.prepareStatement(query4)) {
                             stmt4.setInt(1, orderId);
                             try (ResultSet rs4 = stmt4.executeQuery()) {
+                                List<Integer> ListShopId = new ArrayList<>();
                                 while (rs4.next()) ListShopId.add(rs4.getInt(1));
                                 for (Integer shopId: ListShopId) {
                                     try (PreparedStatement stmt5 = conn.prepareStatement(query5)) {
@@ -322,6 +321,7 @@ public class pp200023_OrderOperations implements OrderOperations {
                                                         stmt7.setInt(1, shopId);
                                                         stmt7.setInt(2, orderId);
                                                         try (ResultSet rs7 = stmt7.executeQuery()) {
+                                                            List<Integer> ListArticleId = new ArrayList<>();
                                                             while (rs7.next()) ListArticleId.add(rs7.getInt(1));
                                                             for (Integer articleId: ListArticleId) {
                                                                 try (PreparedStatement stmt8 = conn.prepareStatement(query8)) {
@@ -353,7 +353,7 @@ public class pp200023_OrderOperations implements OrderOperations {
                         String query11 = "UPDATE Buyer\n" +
                             "SET Credit = Credit - ?\n" +
                             "WHERE ID = ?";
-                        String query12 = "INSERT INTO [Transaction] (Amount, OrderID) VALUES (?, ?)";
+                        String query12 = "INSERT INTO [Transaction] (Amount, ExecutionTime, OrderID) VALUES (?, ?, ?)";
                         String query13 = "INSERT INTO TransactionBuyer (ID) VALUES(?)";
                         try (PreparedStatement stmt9 = conn.prepareStatement(query9)) {
                             stmt9.setInt(1, orderId);
@@ -379,9 +379,11 @@ public class pp200023_OrderOperations implements OrderOperations {
                                             stmt11.setDouble(1, totalPrice);
                                             stmt11.setInt(2, buyerId);
                                             stmt11.executeUpdate();
+                                            Calendar calll = (Calendar) pp200023_GeneralOperations.calendar.clone();
                                             try (PreparedStatement stmt12 = conn.prepareStatement(query12, PreparedStatement.RETURN_GENERATED_KEYS)) {
                                                 stmt12.setDouble(1, totalPrice);
-                                                stmt12.setInt(2, orderId);
+                                                stmt12.setTimestamp(2, new Timestamp(calll.getTimeInMillis()));
+                                                stmt12.setInt(3, orderId);
                                                 stmt12.executeUpdate();
                                                 try (ResultSet rs12 = stmt12.getGeneratedKeys()) {
                                                     if (rs12.next()) {
@@ -409,8 +411,8 @@ public class pp200023_OrderOperations implements OrderOperations {
                             stmt14.executeUpdate();
                             Calendar call = (Calendar) pp200023_GeneralOperations.calendar.clone();
                             try (PreparedStatement stmt15 = conn.prepareStatement(query15)) {
-                                stmt15.setTimestamp(orderId, new Timestamp(call.getTimeInMillis()));
-                                stmt15.setInt(1, orderId);
+                                stmt15.setTimestamp(1, new Timestamp(call.getTimeInMillis()));
+                                stmt15.setInt(2, orderId);
                                 stmt15.executeUpdate();
                             }
                         }
@@ -574,7 +576,7 @@ public class pp200023_OrderOperations implements OrderOperations {
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
+                if (rs.next() && rs.getTimestamp(1) != null) {
                     cal.setTime(rs.getTimestamp(1));
                     return cal;
                 }
@@ -594,7 +596,7 @@ public class pp200023_OrderOperations implements OrderOperations {
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, orderId);
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
+                if (rs.next() && rs.getTimestamp(1) != null) {
                     cal.setTime(rs.getTimestamp(1));
                     return cal;
                 }
