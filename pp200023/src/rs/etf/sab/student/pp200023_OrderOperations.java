@@ -664,12 +664,18 @@ public class pp200023_OrderOperations implements OrderOperations {
     public BigDecimal getDiscountSum(int orderId) {
         if (!checkOrder(orderId)) return new BigDecimal(-1).setScale(3);
         String status;
+        BigDecimal totalPrice = null;
+        BigDecimal finalPrice = null;
+        BigDecimal totalDiscount = null;
         String query1 = "SELECT Status\n" +
             "FROM [Order]\n" +
             "WHERE ID = ?";
-        String query2 = "SELECT COALESCE(SUM(Price * Discount / 100.0), 0)\n" +
+        String query2 = "SELECT COALESCE(SUM(Price), 0)\n" +
             "FROM Item\n" +
             "WHERE OrderId = ?";
+        String query3 = "SELECT Price\n" + 
+            "FROM [Order]\n" + 
+            "WHERE ID = ?";
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setInt(1, orderId);
             try (ResultSet rs1 = stmt1.executeQuery()) {
@@ -679,7 +685,19 @@ public class pp200023_OrderOperations implements OrderOperations {
                         try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
                             stmt2.setInt(1, orderId);
                             try (ResultSet rs2 = stmt2.executeQuery()) {
-                                if (rs2.next()) return rs2.getBigDecimal(1).setScale(3);
+                                if (rs2.next()) {
+                                    totalPrice = rs2.getBigDecimal(1);
+                                    try (PreparedStatement stmt3 = conn.prepareStatement(query3)) {
+                                        stmt3.setInt(1, orderId);
+                                        try (ResultSet rs3 = stmt3.executeQuery()) {
+                                            if (rs3.next()) {
+                                                finalPrice = rs3.getBigDecimal(1);
+                                                totalDiscount = totalPrice.subtract(finalPrice);
+                                                return totalDiscount.setScale(3);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
