@@ -41,7 +41,7 @@ public class pp200023_CityOperations implements CityOperations {
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) res.add(rs.getInt(1));
-                return res;
+                if (!res.isEmpty()) return res;
             }
         } catch (SQLException ex) {
             Logger.getLogger(pp200023_CityOperations.class.getName()).log(Level.SEVERE, null, ex);
@@ -53,11 +53,13 @@ public class pp200023_CityOperations implements CityOperations {
     public int connectCities(int cityId1, int cityId2, int distance) {
         String query1 = "SELECT ID\n" +
             "FROM Connection\n" +
-            "WHERE CityID1 = ? and CityID2 = ?";
+            "WHERE (CityID1 = ? and CityID2 = ?) or (CityID1 = ? and CityID2 = ?)";
         String query2 = "INSERT INTO Connection (Distance, CityID1, CityID2) VALUES (?, ?, ?)";
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setInt(1, cityId1);
             stmt1.setInt(2, cityId2);
+            stmt1.setInt(3, cityId2);
+            stmt1.setInt(4, cityId1);
             try (ResultSet rs1 = stmt1.executeQuery()) {
                 if (!rs1.next()) {
                     try (PreparedStatement stmt2 = conn.prepareStatement(query2, PreparedStatement.RETURN_GENERATED_KEYS)) {
@@ -93,7 +95,7 @@ public class pp200023_CityOperations implements CityOperations {
                     stmt2.setInt(1, cityId);
                     try (ResultSet rs2 = stmt2.executeQuery()) {
                         while (rs2.next()) res.add(rs2.getInt(1));
-                        return res;
+                        if (!res.isEmpty()) return res;
                     }
                 }
             }
@@ -113,7 +115,7 @@ public class pp200023_CityOperations implements CityOperations {
             stmt.setInt(1, cityId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) res.add(rs.getInt(1));
-                return res;
+                if (!res.isEmpty()) return res;
             }
         } catch (SQLException ex) {
             Logger.getLogger(pp200023_CityOperations.class.getName()).log(Level.SEVERE, null, ex);

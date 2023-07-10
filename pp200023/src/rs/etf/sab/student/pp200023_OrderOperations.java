@@ -101,8 +101,41 @@ public class pp200023_OrderOperations implements OrderOperations {
     static Map<Integer, List<Integer>> mPath = new HashMap<>();
     static Map<Integer, Integer> mDaysToNextCity = new HashMap<>();
 
+    boolean checkOrder(int orderId) {
+        String query = "SELECT ID\n" + 
+            "FROM [Order]\n" + 
+            "WHERE ID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, orderId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return true;
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(pp200023_OrderOperations.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+    
+    boolean checkArticle(int articleId) {
+        String query = "SELECT ID\n" + 
+            "FROM Article\n" + 
+            "WHERE ID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, articleId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return true;
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(pp200023_OrderOperations.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+    
     @Override
     public int addArticle(int orderId, int articleId, int count) {
+        if (count < 0) return -1;
+        if (!checkOrder(orderId)) return -1;
+        if (!checkArticle(articleId)) return -1;
         int dbCount, itemId = -1;
         double price;
         String query1 = "SELECT Count\n" +
@@ -123,53 +156,64 @@ public class pp200023_OrderOperations implements OrderOperations {
         String query6 = "UPDATE Catalog\n" +
             "SET Count = Count - ?\n" +
             "WHERE ArticleID = ?";
+        String query7 = "SELECT Status\n" + 
+            "FROM [Order]\n" +
+            "WHERE ID = ?";
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setInt(1, articleId);
             try (ResultSet rs1 = stmt1.executeQuery()) {
                 if (rs1.next()) {
                     dbCount = rs1.getInt(1);
                     if (dbCount >= count) {
-                        try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
-                            stmt2.setInt(1, articleId);
-                            try (ResultSet rs2 = stmt2.executeQuery()) {
-                                if (rs2.next()) {
-                                    price = rs2.getDouble(1);
-                                    try (PreparedStatement stmt3 = conn.prepareStatement(query3)) {
-                                        stmt3.setInt(1, articleId);
-                                        stmt3.setInt(2, orderId);
-                                        try (ResultSet rs3 = stmt3.executeQuery()) {
-                                            if (rs3.next()) {
-                                                itemId = rs3.getInt(1);
-                                                try (PreparedStatement stmt4 = conn.prepareStatement(query4)) {
-                                                    stmt4.setInt(1, count);
-                                                    stmt4.setDouble(2, count * price);
-                                                    stmt4.setInt(3, articleId);
-                                                    stmt4.executeUpdate();
-                                                }
-                                            }
-                                            else {
-                                                try (PreparedStatement stmt5 = conn.prepareStatement(query5, PreparedStatement.RETURN_GENERATED_KEYS)) {
-                                                    stmt5.setInt(1, count);
-                                                    stmt5.setDouble(2, count * price);
-                                                    stmt5.setInt(3, articleId);
-                                                    stmt5.setInt(4, orderId);
-                                                    stmt5.executeUpdate();
-                                                    try (ResultSet rs5 = stmt5.getGeneratedKeys()) {
-                                                        if (rs5.next()) itemId = rs5.getInt(1);
+                        try (PreparedStatement stmt7 = conn.prepareStatement(query7)) {
+                            stmt7.setInt(1, orderId);
+                            try (ResultSet rs7 = stmt7.executeQuery()) {
+                                if (rs7.next() && rs7.getString(1).equals("created")) {
+                                    try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
+                                        stmt2.setInt(1, articleId);
+                                        try (ResultSet rs2 = stmt2.executeQuery()) {
+                                            if (rs2.next()) {
+                                                price = rs2.getDouble(1);
+                                                try (PreparedStatement stmt3 = conn.prepareStatement(query3)) {
+                                                    stmt3.setInt(1, articleId);
+                                                    stmt3.setInt(2, orderId);
+                                                    try (ResultSet rs3 = stmt3.executeQuery()) {
+                                                        if (rs3.next()) {
+                                                            itemId = rs3.getInt(1);
+                                                            try (PreparedStatement stmt4 = conn.prepareStatement(query4)) {
+                                                                stmt4.setInt(1, count);
+                                                                stmt4.setDouble(2, count * price);
+                                                                stmt4.setInt(3, articleId);
+                                                                stmt4.executeUpdate();
+                                                            }
+                                                        }
+                                                        else {
+                                                            try (PreparedStatement stmt5 = conn.prepareStatement(query5, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                                                                stmt5.setInt(1, count);
+                                                                stmt5.setDouble(2, count * price);
+                                                                stmt5.setInt(3, articleId);
+                                                                stmt5.setInt(4, orderId);
+                                                                stmt5.executeUpdate();
+                                                                try (ResultSet rs5 = stmt5.getGeneratedKeys()) {
+                                                                    if (rs5.next()) itemId = rs5.getInt(1);
+                                                                }
+                                                            }
+                                                        }
+                                                        try (PreparedStatement stmt6 = conn.prepareStatement(query6)) {
+                                                            stmt6.setInt(1, count);
+                                                            stmt6.setInt(2, articleId);
+                                                            stmt6.executeUpdate();
+                                                            return itemId;
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            try (PreparedStatement stmt6 = conn.prepareStatement(query6)) {
-                                                stmt6.setInt(1, count);
-                                                stmt6.setInt(2, articleId);
-                                                stmt6.executeUpdate();
-                                                return itemId;
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+                        
                     }
                 }
             }
@@ -181,6 +225,8 @@ public class pp200023_OrderOperations implements OrderOperations {
 
     @Override
     public int removeArticle(int orderId, int articleId) {
+        if (!checkOrder(orderId)) return -1;
+        if (!checkArticle(articleId)) return -1;
         int cnt;
         String query1 = "SELECT Count\n" +
             "FROM Item\n" +
@@ -190,21 +236,31 @@ public class pp200023_OrderOperations implements OrderOperations {
         String query3 = "UPDATE Catalog\n" +
             "SET Count = Count + ?\n" +
             "WHERE ArticleID = ?";
-        try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
-            stmt1.setInt(1, articleId);
-            stmt1.setInt(2, orderId);
-            try (ResultSet rs1 = stmt1.executeQuery()) {
-                if (rs1.next()) {
-                    cnt = rs1.getInt(1);
-                    try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
-                        stmt2.setInt(1, articleId);
-                        stmt2.setInt(2, orderId);
-                        stmt2.executeUpdate();
-                        try (PreparedStatement stmt3 = conn.prepareStatement(query3)) {
-                            stmt3.setInt(1, cnt);
-                            stmt3.setInt(1, articleId);
-                            stmt3.executeUpdate();
-                            return 1;
+        String query4 = "SELECT Status\n" + 
+            "FROM [Order]\n" +
+            "WHERE ID = ?";
+        try (PreparedStatement stmt4 = conn.prepareStatement(query4)) {
+            stmt4.setInt(1, orderId);
+            try (ResultSet rs4 = stmt4.executeQuery()) {
+                if (rs4.next() && rs4.getString(1).equals("created")) {
+                    try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
+                        stmt1.setInt(1, articleId);
+                        stmt1.setInt(2, orderId);
+                        try (ResultSet rs1 = stmt1.executeQuery()) {
+                            if (rs1.next()) {
+                                cnt = rs1.getInt(1);
+                                try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
+                                    stmt2.setInt(1, articleId);
+                                    stmt2.setInt(2, orderId);
+                                    stmt2.executeUpdate();
+                                    try (PreparedStatement stmt3 = conn.prepareStatement(query3)) {
+                                        stmt3.setInt(1, cnt);
+                                        stmt3.setInt(1, articleId);
+                                        stmt3.executeUpdate();
+                                        return 1;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -225,7 +281,7 @@ public class pp200023_OrderOperations implements OrderOperations {
             stmt.setInt(1, orderId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) res.add(rs.getInt(1));
-                return res;
+                if (!res.isEmpty()) return res;
             }
         } catch (SQLException ex) {
             Logger.getLogger(pp200023_OrderOperations.class.getName()).log(Level.SEVERE, null, ex);
@@ -254,7 +310,6 @@ public class pp200023_OrderOperations implements OrderOperations {
     // find buyerId
     // find paid sum for past month
     // if paid sum is over 10000, set discount for order
-    // if paid sum is over 10000, set discount for each item in order
     int updateSystemDiscount(int orderId) throws SQLException {
         int buyerId = -1;
         double buyerPrice;
@@ -267,9 +322,6 @@ public class pp200023_OrderOperations implements OrderOperations {
         String query3 = "UPDATE [Order]\n" +
                 "SET Discount = 2\n" +
                 "WHERE ID = ?";
-        String query6 = "UPDATE Item\n" +
-                "SET Discount = Discount + 2\n" +
-                "WHERE OrderID = ?";
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setInt(1, orderId);
             try (ResultSet rs1 = stmt1.executeQuery()) {
@@ -287,10 +339,6 @@ public class pp200023_OrderOperations implements OrderOperations {
                                     try (PreparedStatement stmt3 = conn.prepareStatement(query3)) {
                                         stmt3.setInt(1, orderId);
                                         stmt3.executeUpdate();
-                                        try (PreparedStatement stmt6 = conn.prepareStatement(query6)) {
-                                            stmt6.setInt(1, orderId);
-                                            stmt6.executeUpdate();
-                                        }
                                     }
                                 }
                             }
@@ -364,10 +412,13 @@ public class pp200023_OrderOperations implements OrderOperations {
     // if everything allright, create transaction for buyer
     boolean updatePricesAndCredit(int orderId, int buyerId) throws SQLException {
         double totalPrice;
-        int tranId;
+        int tranId, discount;
         String query9 = "SELECT COALESCE(SUM(Price * (100 - Discount) / 100.0), 0)\n" +
             "FROM Item\n" +
             "WHERE OrderID = ?";
+        String query91 = "SELECT Discount\n" + 
+            "FROM [Order]\n" +
+            "WHERE ID = ?";
         String query90 = "SELECT Credit\n" +
             "FROM Buyer\n" +
             "WHERE ID = ?";
@@ -384,6 +435,15 @@ public class pp200023_OrderOperations implements OrderOperations {
             try (ResultSet rs9 = stmt9.executeQuery()) {
                 if (rs9.next()) {
                     totalPrice = rs9.getDouble(1);
+                    try (PreparedStatement stmt91 = conn.prepareStatement(query91)) {
+                        stmt91.setInt(1, orderId);
+                        try (ResultSet rs91 = stmt91.executeQuery()) {
+                            if (rs91.next()) {
+                                discount = rs91.getInt(1);
+                                totalPrice *= ((100 - discount) / 100.0);
+                            }
+                        }
+                    }
                     try (PreparedStatement stmt90 = conn.prepareStatement(query90)) {
                         stmt90.setInt(1, buyerId);
                         try (ResultSet rs90 = stmt90.executeQuery()) {
@@ -551,6 +611,7 @@ public class pp200023_OrderOperations implements OrderOperations {
     
     @Override
     public int completeOrder(int orderId) {
+        if (!checkOrder(orderId)) return -1;
         try {
             conn.setAutoCommit(false);
             int buyerId;
@@ -569,6 +630,7 @@ public class pp200023_OrderOperations implements OrderOperations {
             if (g != null) {
                 int assembleCity = getAssembleCityAndUpdateMPath(orderId, buyerId, g);
                 updateMDaysToAssamble(orderId, assembleCity, g);
+                (new pp200023_GeneralOperations()).time(0);
                 conn.commit();
                 return 1;
             }
@@ -585,6 +647,7 @@ public class pp200023_OrderOperations implements OrderOperations {
 
     @Override
     public BigDecimal getFinalPrice(int orderId) {
+        if (!checkOrder(orderId)) return new BigDecimal(-1).setScale(3);
         String query = "{ CALL dbo.SP_FINAL_PRICE(?, ?) }";
         try (CallableStatement stmt = conn.prepareCall(query)) {
             stmt.setInt(1, orderId);
@@ -599,6 +662,7 @@ public class pp200023_OrderOperations implements OrderOperations {
 
     @Override
     public BigDecimal getDiscountSum(int orderId) {
+        if (!checkOrder(orderId)) return new BigDecimal(-1).setScale(3);
         String status;
         String query1 = "SELECT Status\n" +
             "FROM [Order]\n" +
@@ -701,6 +765,7 @@ public class pp200023_OrderOperations implements OrderOperations {
 
     @Override
     public int getLocation(int orderId) {
+        if (!checkOrder(orderId)) return -1;
         String status;
         String query1 = "SELECT Status\n" +
             "FROM [Order]\n" +

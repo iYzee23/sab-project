@@ -44,16 +44,32 @@ public class pp200023_BuyerOperations implements BuyerOperations {
         return -1;
     }
 
+    boolean checkBuyer(int buyerId) {
+        String query = "SELECT ID\n" + 
+            "FROM Buyer\n" + 
+            "WHERE ID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, buyerId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return true;
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(pp200023_OrderOperations.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+    
     @Override
     public int setCity(int buyerId, int cityId) {
+        if (!checkBuyer(buyerId)) return -1;
         String query = "UPDATE Member\n" +
             "SET CityID = ?\n" +
             "WHERE ID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, cityId);
             stmt.setInt(2, buyerId);
-            stmt.executeUpdate();
-            return 1;
+            int rows = stmt.executeUpdate();
+            if (rows > 0) return 1;
         } catch (SQLException ex) {
             Logger.getLogger(pp200023_CityOperations.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -62,6 +78,7 @@ public class pp200023_BuyerOperations implements BuyerOperations {
 
     @Override
     public int getCity(int buyerId) {
+        if (!checkBuyer(buyerId)) return -1;
         String query = "SELECT CityID\n" +
             "FROM Member\n" +
             "WHERE ID = ?";
@@ -78,6 +95,7 @@ public class pp200023_BuyerOperations implements BuyerOperations {
 
     @Override
     public BigDecimal increaseCredit(int buyerId, BigDecimal credit) {
+        if (!checkBuyer(buyerId)) return new BigDecimal(-1).setScale(3);
         String query1 = "UPDATE Buyer\n" +
             "SET Credit = Credit + ?\n" +
             "WHERE ID = ?";
@@ -87,11 +105,13 @@ public class pp200023_BuyerOperations implements BuyerOperations {
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setBigDecimal(1, credit);
             stmt1.setInt(2, buyerId);
-            stmt1.executeUpdate();
-            try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
-                stmt2.setInt(1, buyerId);
-                try (ResultSet rs2 = stmt2.executeQuery()) {
-                    if (rs2.next()) return rs2.getBigDecimal(1).setScale(3);
+            int rows = stmt1.executeUpdate();
+            if (rows > 0) {
+                try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
+                    stmt2.setInt(1, buyerId);
+                    try (ResultSet rs2 = stmt2.executeQuery()) {
+                        if (rs2.next()) return rs2.getBigDecimal(1).setScale(3);
+                    }
                 }
             }
         } catch (SQLException ex) {
@@ -125,7 +145,7 @@ public class pp200023_BuyerOperations implements BuyerOperations {
             stmt.setInt(1, buyerId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) res.add(rs.getInt(1));
-                return res;
+                if (!res.isEmpty()) return res;
             }
         } catch (SQLException ex) {
             Logger.getLogger(pp200023_CityOperations.class.getName()).log(Level.SEVERE, null, ex);

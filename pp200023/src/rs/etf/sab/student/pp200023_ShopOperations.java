@@ -54,8 +54,24 @@ public class pp200023_ShopOperations implements ShopOperations {
         return -1;
     }
 
+    boolean checkShop(int shopId) {
+        String query = "SELECT ID\n" + 
+            "FROM Shop\n" + 
+            "WHERE ID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, shopId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return true;
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(pp200023_OrderOperations.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+    
     @Override
     public int setCity(int shopId, String cityName) {
+        if (!checkShop(shopId)) return -1;
         int cityId;
         String query1 = "SELECT ID\n" +
             "FROM City\n" +
@@ -71,8 +87,8 @@ public class pp200023_ShopOperations implements ShopOperations {
                     try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
                         stmt2.setInt(1, cityId);
                         stmt2.setInt(2, shopId);
-                        stmt2.executeUpdate();
-                        return 1;
+                        int rows = stmt2.executeUpdate();
+                        if (rows > 0) return 1;
                     }
                 }
             }
@@ -84,6 +100,7 @@ public class pp200023_ShopOperations implements ShopOperations {
 
     @Override
     public int getCity(int shopId) {
+        if (!checkShop(shopId)) return -1;
         String query = "SELECT CityID\n" +
             "FROM Member\n" +
             "WHERE ID = ?";
@@ -100,6 +117,8 @@ public class pp200023_ShopOperations implements ShopOperations {
 
     @Override
     public int setDiscount(int shopId, int discountPercentage) {
+        if (discountPercentage < 0 || discountPercentage > 100) return -1;
+        if (!checkShop(shopId)) return -1;
         String query = "UPDATE Shop\n" +
             "SET Discount = ?\n" +
             "WHERE ID = ?";
@@ -116,6 +135,7 @@ public class pp200023_ShopOperations implements ShopOperations {
 
     @Override
     public int increaseArticleCount(int articleId, int increment) {
+        if (increment < 0) return -1;
         String query1 = "UPDATE Catalog\n" +
             "SET Count = Count + ?\n" +
             "WHERE ArticleID = ?";
@@ -125,11 +145,13 @@ public class pp200023_ShopOperations implements ShopOperations {
         try (PreparedStatement stmt1 = conn.prepareStatement(query1)) {
             stmt1.setInt(1, increment);
             stmt1.setInt(2, articleId);
-            stmt1.executeUpdate();
-            try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
-                stmt2.setInt(1, articleId);
-                try (ResultSet rs2 = stmt2.executeQuery()) {
-                    if (rs2.next()) return rs2.getInt(1);
+            int rows = stmt1.executeUpdate();
+            if (rows > 0) {
+                try (PreparedStatement stmt2 = conn.prepareStatement(query2)) {
+                    stmt2.setInt(1, articleId);
+                    try (ResultSet rs2 = stmt2.executeQuery()) {
+                        if (rs2.next()) return rs2.getInt(1);
+                    }
                 }
             }
         } catch (SQLException ex) {
@@ -164,7 +186,7 @@ public class pp200023_ShopOperations implements ShopOperations {
             stmt.setInt(1, shopId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) res.add(rs.getInt(1));
-                return res;
+                if (!res.isEmpty()) return res;
             }
         } catch (SQLException ex) {
             Logger.getLogger(pp200023_CityOperations.class.getName()).log(Level.SEVERE, null, ex);
@@ -174,6 +196,7 @@ public class pp200023_ShopOperations implements ShopOperations {
 
     @Override
     public int getDiscount(int shopId) {
+        if (!checkShop(shopId)) return -1;
         String query = "SELECT Discount\n" +
             "FROM Shop\n" +
             "WHERE ID = ?";

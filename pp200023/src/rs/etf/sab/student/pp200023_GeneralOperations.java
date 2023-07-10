@@ -196,6 +196,7 @@ public class pp200023_GeneralOperations implements GeneralOperations {
 
     @Override
     public Calendar time(int days) {
+        if (days < 0) return calendar;
         try {
             conn.setAutoCommit(false);
             updateMDaysToAssamble(days);
